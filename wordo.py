@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit_ext as ste
 import random
 import pytube
 from pytube import extract
@@ -8,60 +9,64 @@ from annotated_text import annotated_text
 from librosaplayground import slice_audio
 
 st.title("Express Tube")
-st.subheader("Load a Youtube video, filter it by text, download samples, HAVE FUN")
+st.subheader("Find a Youtube video, grab its link, and enter it below!")
+st.text("You can:\n- search the video by text\n- download the audio or video\n- listen/download audio")
 yt_link = st.text_input("Please enter a Youtube link:")
 
 if yt_link:
-    video_id = extract.video_id(yt_link)
+    with st.spinner("Working it...💃"):
+        try:
+            with st.expander("Watch video | Listen/Download Audio"):
+                with st.spinner("Fetching video:"):
+                    st.video(yt_link)
+                    yt_video = pytube.YouTube(yt_link)
+                    yt_video_name = yt_video.title
+                    yt_audio_stream = yt_video.streams.get_by_itag(140).download()
+                    st.session_state.yt_audio = yt_audio_stream
+                    audio_download = open(f'{yt_audio_stream}', 'rb')
+                    audio_bytes = audio_download.read()
+                    st.audio(yt_audio_stream)
+                    ste.download_button("Download audio", audio_bytes, f"{yt_video_name} - audio only.mp4")
+            video_id = extract.video_id(yt_link)
 
-    srt = YouTubeTranscriptApi.get_transcript(video_id)
+            srt = YouTubeTranscriptApi.get_transcript(video_id)
 
-    # st.write(srt)
+            # st.write(srt)
+            with st.expander("Search and chop audio by text"):
+                search = st.text_input("Enter a word or phrase to search the video:")
 
-    search = st.text_input("Enter a word or phrase to search the video:")
 
-    filtered_search = []
+                filtered_search = []
 
-    for i in srt:
-        if search.lower() in i["text"].lower():
-            filtered_search.append(i)
+                for i in srt:
+                    if search.lower() in i["text"].lower():
+                        filtered_search.append(i)
 
-    if search:
-        with st.spinner("Chop chop..."):
-            yt_audio = pytube.YouTube(yt_link).streams.filter(only_audio=True)
-            # st.write(yt_audio)
+                if search:
+                    with st.spinner("Chop chop...✂︎✂︎✂︎"):
+                        for i in filtered_search:
+                            r = lambda: random.randint(150, 255)
+                            g = lambda: random.randint(150, 255)
+                            b = lambda: random.randint(136, 255)
+                            randcolor = ("#%02X%02X%02X" % (r(), g(), b()))
+                            annotated_tuple = (i["text"], str(i["start"]), randcolor)
+                            annotated_text(annotated_tuple)
+                            tab1, tab2 = st.tabs(["Listen/Download Audio", "Watch video from this point"])
+                            sliced_audio = slice_audio(i["start"], i["duration"])
+                            with tab1:
+                                st_audio_thang = st.audio(sliced_audio.export().read())
+                            with tab2:
+                                st.video(yt_link, start_time=int(i["start"]))
 
-            yt_video = pytube.YouTube(yt_link)
-            yt_video_name = yt_video.title
-            yt_audio_stream = yt_video.streams.get_by_itag(140).download()
-            st.session_state.yt_audio = yt_audio_stream
-            for i in filtered_search:
-                r = lambda: random.randint(150, 255)
-                g = lambda: random.randint(150, 255)
-                b = lambda: random.randint(136, 255)
-                randcolor = ("#%02X%02X%02X" % (r(), g(), b()))
-                annotated_tuple = (i["text"], str(i["start"]), randcolor)
-                annotated_text(annotated_tuple)
-                watch_button = st.button(f'Watch: {i["text"]}')
-                if watch_button:
-                    st.video(yt_link, start_time=int(i["start"]))
-                # st.write(type(i["duration"]))
-                # st.write(st.session_state.yt_audio)
-                # audio = AudioSegment.from_file(io.FileIO(yt_audio_stream), "mp4")
-                sliced_audio = slice_audio(i["start"], i["duration"])
-                # st.write(st.session_state.sliced_audio_file.file)
-                # st.write(sliced_audio)
-                # sliced_mp4 = sliced_audio.export(st.session_state["sliced_audio"], "mp4")
-                st_audio_thang = st.audio(sliced_audio.export().read())
-
-    show_all_button = st.button("Show all")
-    if show_all_button:
-        with st.spinner("All shall be revealed..."):
-            for i in srt:
-                r = lambda: random.randint(150, 255)
-                g = lambda: random.randint(150, 255)
-                b = lambda: random.randint(136, 255)
-                randcolor = ("#%02X%02X%02X" % (r(), g(), b()))
-                annotated_tuple = (i["text"], str(i["start"]), randcolor)
-                annotated_text(annotated_tuple)
-
+            with st.expander("SHOW ALL TEXT"):
+                with st.spinner("All shall be revealed..."):
+                    for i in srt:
+                        r = lambda: random.randint(150, 255)
+                        g = lambda: random.randint(150, 255)
+                        b = lambda: random.randint(136, 255)
+                        randcolor = ("#%02X%02X%02X" % (r(), g(), b()))
+                        annotated_tuple = (i["text"], str(i["start"]), randcolor)
+                        annotated_text(annotated_tuple)
+        except:
+            st.warning("Hmm...is this definitely a Youtube link? I don't think so...🙄🤔🙄")
+            st.warning("Please enter a valid Youtube link...")
