@@ -16,15 +16,15 @@ yt_link = st.text_input("Please enter a Youtube link:")
 if yt_link:
     with st.spinner("Working it...💃"):
         try:
+            yt_video = pytube.YouTube(yt_link)
+            yt_video_name = yt_video.title
+            yt_audio_stream = yt_video.streams.get_by_itag(140).download()
+            st.session_state.yt_audio = yt_audio_stream
+            audio_download = open(f'{yt_audio_stream}', 'rb')
+            audio_bytes = audio_download.read()
             with st.expander("Watch video | Listen/Download Audio"):
                 with st.spinner("Fetching video:"):
                     st.video(yt_link)
-                    yt_video = pytube.YouTube(yt_link)
-                    yt_video_name = yt_video.title
-                    yt_audio_stream = yt_video.streams.get_by_itag(140).download()
-                    st.session_state.yt_audio = yt_audio_stream
-                    audio_download = open(f'{yt_audio_stream}', 'rb')
-                    audio_bytes = audio_download.read()
                     st.audio(yt_audio_stream)
                     ste.download_button("Download audio", audio_bytes, f"{yt_video_name} - audio only.mp4")
             video_id = extract.video_id(yt_link)
@@ -55,6 +55,7 @@ if yt_link:
                             sliced_audio = slice_audio(i["start"], i["duration"])
                             with tab1:
                                 st_audio_thang = st.audio(sliced_audio.export().read())
+                                ste.download_button("Download segment", sliced_audio.export(format='mp4').read(), f"{i['text']} - {i['start']}.mp4")
                             with tab2:
                                 st.video(yt_link, start_time=int(i["start"]))
 
@@ -68,5 +69,5 @@ if yt_link:
                         annotated_tuple = (i["text"], str(i["start"]), randcolor)
                         annotated_text(annotated_tuple)
         except:
-            st.warning("Hmm...is this definitely a Youtube link? I don't think so...🙄🤔🙄")
-            st.warning("Please enter a valid Youtube link...")
+            st.warning("Hmm...check the song has subtitles or that you have entered a valid Youtube link and try again! 🤔")
+
