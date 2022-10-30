@@ -69,5 +69,5 @@ if yt_link:
                         annotated_tuple = (i["text"], str(i["start"]), randcolor)
                         annotated_text(annotated_tuple)
         except:
-            st.warning("Hmm...check the song has subtitles or that you have entered a valid Youtube link and try again! 🤔")
+            st.warning("Hmm...check the video has subtitles or that you have entered a valid Youtube link and try again! 🤔")
 
